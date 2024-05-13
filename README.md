@@ -1,4 +1,4 @@
-# Project4 : B+ tree
+# Project4 : B+ tree in Database
 
 这是 CS1959(2023 - 2024 - 2) 程序设计与数据结构课程的第 4 个 project: 实现数据库中的 B+ 树。
 
@@ -6,7 +6,7 @@
 
 ## 基础知识
 
-在开始这个 project 之前， 我们需要了解一些基础知识。 由于课上已学习过 B 树与 B+ 树，这里没有对 B 树与 B+ 树进行介绍， 如有需要请查阅相关课程 PPT。如果你对 B+ 树进行操作后的结构有疑惑， 请在 https://www.cs.usfca.edu/~galles/visualization/BPlusTree.html 网站上进行尝试。
+在开始这个 project 之前， 我们需要了解一些基础知识。 由于课上已学习过 B 树与 B+ 树，这里没有对 B 树与 B+ 树进行介绍， 如有需要请查阅相关课程 PPT。如果你对 B+ 树进行操作后的结构有疑惑， 请在 https://www.cs.usfca.edu/~galles/visualization/BPlusTree.html 网站上进行尝试。 此外， 这个博客的动图非常生动： https://zhuanlan.zhihu.com/p/149287061。
 
 ### 数据库的简单介绍(optional)
 
@@ -29,24 +29,33 @@
 
 我们的 bustub 数据库的存储引擎将数据存储在磁盘上， 实现数据的持久化。我们知道， 磁盘的一大特征便是空间大但访问速度非常慢， 因此， 我们希望能减少对于磁盘的交互访问 (以下称为磁盘 IO) 次数。
 
-为什么我们采取 B+ 树作为这个存储引擎的数据结构？ 为了便于查询，我们需要给我们的表格建立目录， 即选取表格中的某一列作为 "索引"。这样， 通过索引便可建立一个有序的数据结构， 如二叉搜索树， 我们查询时只需要先找到索引便可找到我们所需的数据行。 但二叉搜索树的深度太大， 导致对其进行查询（或插入删除）操作时磁盘 IO 次数太多。 因此， 我们可以考虑选取 B 树， B 树的深度往往远小于数据数量， 通常可维持在 3-4 层左右。 但 B 树每个结点都存储索引和数据行， 导致 B 树的单个节点所占空间太大。 另一方面， B 树不支持按照索引进行顺序查找。 因此我们可以将 B 树升级为 B+ 树， 只在叶子结点存储真正的数据行， 非叶子节点只存储索引。
+为什么我们采取 B+ 树作为这个存储引擎的数据结构？ 首先， 为了便于查询，我们需要给我们的表格建立 "目录"， 即选取表格中的某一列作为 "索引"。这样， 通过索引便可建立一个有序的数据结构(如二叉搜索树)。 我们查询时只需要先找到索引， 便可找到我们所需的数据行。 但二叉搜索树的深度太大， 导致对其进行查询（或插入删除）操作时磁盘 IO 次数太多。 因此， 我们可以考虑选取 B 树， B 树的深度往往远小于数据数量， 通常可维持在 3-4 层左右。 但 B 树每个结点都存储索引和数据行， 导致 B 树的单个节点所占空间太大。 另一方面， B 树不支持按照索引进行顺序查找。 因此， 我们可以将 B 树升级为 B+ 树， 只在叶子结点存储真正的数据行， 非叶子节点只存储索引。
 
 ![](https://notes.sjtu.edu.cn/uploads/upload_bfde29d73741b26103fce71094eae7e4.png)
 
 
-Tips: 以上所说的是主键索引的情况， 实际上数据库还有其他多种索引方式， 但与本次 project 无关， 有兴趣的同学可以自行了解。
+Tips: 以上所说的是主键索引的情况，实际上数据库还有其他多种索引方式， 但与本次 project 无关， 有兴趣的同学可以自行了解。
 
 ### 存储引擎与数据页(optional)
 
 
-根据上方的表格图像，我们每行都存储了一条数据信息。但如果用户执行查询操作， 我们并不能以 "行" 为单位读取数据， 否则一次磁盘 IO 只能处理一行， 执行效率过低。 我们这里采取的策略是以 "page"（数据页）为单位进行磁盘 IO。 我们可以简单地将一个 page 视为是固定大小的一块存储空间。 通过打包一系列数据行进入同一个 page， 可以实现减少磁盘 IO 的效果。这里我们并不需要了解 page 的细节，与磁盘的 IO 操作已被封装为以下几个函数: `ReadPageGuard`，`WritePageGuard`。 
+根据上方的表格图像，我们每行都存储了一条数据信息。但如果用户执行查询操作， 我们并不能以 "行" 为单位读取数据， 否则一次磁盘 IO 只能处理一行， 执行效率过低。 我们这里采取的策略是以 "page"（数据页）为单位进行磁盘 IO。 我们可以简单地将一个 page 视为是固定大小的一块存储空间。 通过打包一系列数据行进入同一个 page， 可以实现减少磁盘 IO 的效果。这里我们并不需要了解 page 的细节，与磁盘的 IO 操作已被封装为以下几个函数: `FetchPageRead`，`FetchPageWrite`。我会在之后详细说明这两个函数。 
 
 ![](https://notes.sjtu.edu.cn/uploads/upload_5879015cd51b787ca781b64ac3e5e7b2.png)
 
 
 ### B+ 树加锁方法
 
-B+ 树加锁采用 "螃蟹法则"。
+B+ 树加锁采用 "螃蟹法则"。具体请见下图。 
+
+![](https://notes.sjtu.edu.cn/uploads/upload_9c4c517643c2ab7eba276408e2233d8f.png)
+
+![](https://notes.sjtu.edu.cn/uploads/upload_38c70fad05997aaf4ffb671539067d16.png)
+
+这里我用大白话再解释一遍： 拿 insert 函数举例， 我们在搜索路径上每次都先拿 parent 结点的锁， 然后拿 child 结点的锁， 如果 child 结点是 "安全" 的， 就自上而下释放一路走下来所有 parent 结点的锁。（自上而下和自下而上都可以，但是自上而下能更快冲淡堵塞）
+
+对于“安全”， 只要child page插入时不满， 或者删除时至少半满，那就安全。 注意这里的child 不一定是指leaf page.为什么呢？ 就拿insertion举例，我们一路走下去的时候，路上遇到的那些不满的page, 如果leaf page要分裂的话，原路返回的时候也不可能引起那些不满的page的分裂。 所以我们可以保证从这个不满的结点往上，都是安全的， 不会分裂的， 不用加写锁， 所以可以把写锁全都放掉。 deletion就是同理。
+
 
 ## 主体任务
 
@@ -236,6 +245,67 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
 
 请见 `src/include/storage/index/b_plus_tree.h` 与 `src/storage/index/b_plus_tree.cpp`
 
+请注意，你并不需要关心任何和 `BufferPoolManager`, `Transaction` 相关的数据成员。
+
+你需要实现 B+ 树的查找(GetValue)、插入（Insert）与删除(Remove)操作。 请注意， 整个 B+ 树存储于磁盘上， 因此每个结点都是以 page 形式存在， 需要使用 `FetchPageRead / FetchPageWritez` 函数从磁盘拿到内存中。
+
+```cpp
+/*****************************************************************************
+ * SEARCH
+ *****************************************************************************/
+/*
+ * Return the only value that associated with input key
+ * This method is used for point query
+ * @return : true means key exists
+ */
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::GetValue(const KeyType& key,
+                              std::vector<ValueType>* result, Transaction* txn)
+     ->  bool
+{
+  //Your code here
+  return true;
+}
+
+/*****************************************************************************
+ * INSERTION
+ *****************************************************************************/
+/*
+ * Insert constant key & value pair into b+ tree
+ * if current tree is empty, start new tree, update root page id and insert
+ * entry, otherwise insert into leaf page.
+ * @return: since we only support unique key, if user try to insert duplicate
+ * keys return false, otherwise return true.
+ */
+
+
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::Insert(const KeyType& key, const ValueType& value,
+                            Transaction* txn)  ->  bool
+{
+  //Your code here
+  return true;
+}
+
+
+/*****************************************************************************
+ * REMOVE
+ *****************************************************************************/
+/*
+ * Delete key & value pair associated with input key
+ * If current tree is empty, return immediately.
+ * If not, User needs to first find the right leaf page as deletion target, then
+ * delete entry from leaf page. Remember to deal with redistribute or merge if
+ * necessary.
+ */
+
+INDEX_TEMPLATE_ARGUMENTS
+void BPLUSTREE_TYPE::Remove(const KeyType& key, Transaction* txn)
+{
+  //Your code here
+}
+```
+
 #### Context
 
 请见 `src/include/storage/index/b_plus_tree.h`.
@@ -268,6 +338,30 @@ class Context {
 };
 ```
 
+
+## 推荐的攻略
+
+推荐你采取这样的路径进行编写：
+
++ 简单的插入操作。 在不考虑分裂的情况下编写 insert 函数。
+
++ 查找操作。 
+
+实现以上二者之后请测试二者是否正确。
+
++ 简单的分裂操作。 请你编写 insert 函数， 考虑只有一个结点被分裂的情况。 (即此时不会递归分裂)
+
++ 递归的分裂操作。 请你继续编写 insert 函数， 考虑递归分类的情况。
+
+到这里， 你应该可以通过 insert test。
+
++ 简单的删除操作。 此时不会发生合并或者借用。
+
++ 简单的合并 / 借用操作。 此时只会发生一次合并。
+
++ 复杂的合并 / 借用操作。 此时会递归发生合并 / 借用。
+
++ 为以上函数增添并发组件， 使其线程安全。
 
 ## 测试方法
 
