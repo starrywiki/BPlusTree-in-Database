@@ -90,6 +90,10 @@ class BPlusTree {
   auto End() -> INDEXITERATOR_TYPE;
 
   auto Begin(const KeyType &key) -> INDEXITERATOR_TYPE;
+  
+  //Binary find in page
+  auto BinaryFind(const LeafPage* leaf_page, const KeyType& key) -> int;
+  auto BinaryFind(const InternalPage* internal_page, const KeyType& key) -> int;
 
   // Print the B+ tree
   void Print(BufferPoolManager *bpm);
