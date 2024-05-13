@@ -179,21 +179,18 @@ auto BPLUSTREE_TYPE::Begin()  ->  INDEXITERATOR_TYPE
 //Just go left forever
 {
   ReadPageGuard head_guard = bpm_ -> FetchPageRead(header_page_id_);
-  if (head_guard.template As<BPlusTreeHeaderPage>() -> root_page_id_ ==
-      INVALID_PAGE_ID)
+  if (head_guard.template As<BPlusTreeHeaderPage>() -> root_page_id_ == INVALID_PAGE_ID)
   {
     return End();
   }
-  ReadPageGuard guard =
-      bpm_ -> FetchPageRead(head_guard.As<BPlusTreeHeaderPage>() -> root_page_id_);
+  ReadPageGuard guard = bpm_ -> FetchPageRead(head_guard.As<BPlusTreeHeaderPage>() -> root_page_id_);
   head_guard.Drop();
 
   auto tmp_page = guard.template As<BPlusTreePage>();
   while (!tmp_page -> IsLeafPage())
   {
     int slot_num = 0;
-    guard = bpm_ -> FetchPageRead(
-        reinterpret_cast<const InternalPage*>(tmp_page) -> ValueAt(slot_num));
+    guard = bpm_ -> FetchPageRead(reinterpret_cast<const InternalPage*>(tmp_page) -> ValueAt(slot_num));
     tmp_page = guard.template As<BPlusTreePage>();
   }
   int slot_num = 0;
@@ -215,13 +212,11 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
 {
   ReadPageGuard head_guard = bpm_ -> FetchPageRead(header_page_id_);
 
-  if (head_guard.template As<BPlusTreeHeaderPage>() -> root_page_id_ ==
-      INVALID_PAGE_ID)
+  if (head_guard.template As<BPlusTreeHeaderPage>() -> root_page_id_ == INVALID_PAGE_ID)
   {
     return End();
   }
-  ReadPageGuard guard =
-      bpm_ -> FetchPageRead(head_guard.As<BPlusTreeHeaderPage>() -> root_page_id_);
+  ReadPageGuard guard = bpm_ -> FetchPageRead(head_guard.As<BPlusTreeHeaderPage>() -> root_page_id_);
   head_guard.Drop();
   auto tmp_page = guard.template As<BPlusTreePage>();
   while (!tmp_page -> IsLeafPage())
@@ -232,8 +227,7 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
     {
       return End();
     }
-    guard = bpm_ -> FetchPageRead(
-        reinterpret_cast<const InternalPage*>(tmp_page) -> ValueAt(slot_num));
+    guard = bpm_ -> FetchPageRead(reinterpret_cast<const InternalPage*>(tmp_page) -> ValueAt(slot_num));
     tmp_page = guard.template As<BPlusTreePage>();
   }
   auto* leaf_page = reinterpret_cast<const LeafPage*>(tmp_page);
@@ -266,7 +260,6 @@ auto BPLUSTREE_TYPE::GetRootPageId()  ->  page_id_t
   ReadPageGuard guard = bpm_ -> FetchPageRead(header_page_id_);
   auto root_header_page = guard.template As<BPlusTreeHeaderPage>();
   page_id_t root_page_id = root_header_page -> root_page_id_;
-  guard.Drop();
   return root_page_id;
 }
 
@@ -355,8 +348,7 @@ void BPLUSTREE_TYPE::PrintTree(page_id_t page_id, const BPlusTreePage* page)
   if (page -> IsLeafPage())
   {
     auto* leaf = reinterpret_cast<const LeafPage*>(page);
-    std::cout << "Leaf Page: " << page_id << "\tNext: " << leaf -> GetNextPageId()
-              << std::endl;
+    std::cout << "Leaf Page: " << page_id << "\tNext: " << leaf -> GetNextPageId() << std::endl;
 
     // Print the contents of the leaf page.
     std::cout << "Contents: ";

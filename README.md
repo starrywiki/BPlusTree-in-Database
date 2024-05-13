@@ -14,12 +14,11 @@
 
 数据库可以分成很多类型， 这里我们所关心的 bustub 数据库是"关系型数据库"。 我们可以简单理解成， 这种数据库里存储的是一张张表格， 这些表格根据数据之间的关系建立起来。 例如， 下图就是一个表格示例。
 
-![](https://notes.sjtu.edu.cn/uploads/upload_d74ed6ea471f51aa663eeb281bae90b9.png)
-
+<img src="https://notes.sjtu.edu.cn/uploads/upload_d74ed6ea471f51aa663eeb281bae90b9.png" width="500">
 
 对于数据库架构， 我从网络上找到了一个非常形象的图：(版权归"小林 coding"公众号所有， 该图为知名数据库 mysql 的架构示意图)
 
-![](https://notes.sjtu.edu.cn/uploads/upload_2f43366c45fa12ba230efff3b21c3da4.png)
+<img src="https://notes.sjtu.edu.cn/uploads/upload_2f43366c45fa12ba230efff3b21c3da4.png" width="800">
 
 我们的数据库管理系统通常分为 Server 层和存储引擎层。 Server 层需要解决网络通信、 SQL 语句解析、 执行计划生成与优化等问题。 Server 层决定了用户输入的 SQL 查询语句是如何转化成优化后的执行计划。存储引擎层则负责数据的存储与提取。 不同存储引擎所使用的数据结构和实现方式可能并不相同。
 
@@ -31,7 +30,7 @@
 
 为什么我们采取 B+ 树作为这个存储引擎的数据结构？ 首先， 为了便于查询，我们需要给我们的表格建立 "目录"， 即选取表格中的某一列作为 "索引"。这样， 通过索引便可建立一个有序的数据结构(如二叉搜索树)。 我们查询时只需要先找到索引， 便可找到我们所需的数据行。 但二叉搜索树的深度太大， 导致对其进行查询（或插入删除）操作时磁盘 IO 次数太多。 因此， 我们可以考虑选取 B 树， B 树的深度往往远小于数据数量， 通常可维持在 3-4 层左右。 但 B 树每个结点都存储索引和数据行， 导致 B 树的单个节点所占空间太大。 另一方面， B 树不支持按照索引进行顺序查找。 因此， 我们可以将 B 树升级为 B+ 树， 只在叶子结点存储真正的数据行， 非叶子节点只存储索引。
 
-![](https://notes.sjtu.edu.cn/uploads/upload_bfde29d73741b26103fce71094eae7e4.png)
+<img src="https://notes.sjtu.edu.cn/uploads/upload_bfde29d73741b26103fce71094eae7e4.png" width="800">
 
 
 Tips: 以上所说的是主键索引的情况，实际上数据库还有其他多种索引方式， 但与本次 project 无关， 有兴趣的同学可以自行了解。
@@ -41,29 +40,32 @@ Tips: 以上所说的是主键索引的情况，实际上数据库还有其他�
 
 根据上方的表格图像，我们每行都存储了一条数据信息。但如果用户执行查询操作， 我们并不能以 "行" 为单位读取数据， 否则一次磁盘 IO 只能处理一行， 执行效率过低。 我们这里采取的策略是以 "page"（数据页）为单位进行磁盘 IO。 我们可以简单地将一个 page 视为是固定大小的一块存储空间。 通过打包一系列数据行进入同一个 page， 可以实现减少磁盘 IO 的效果。这里我们并不需要了解 page 的细节，与磁盘的 IO 操作已被封装为以下几个函数: `FetchPageRead`，`FetchPageWrite`。我会在之后详细说明这两个函数。 
 
-![](https://notes.sjtu.edu.cn/uploads/upload_5879015cd51b787ca781b64ac3e5e7b2.png)
+
+<img src="https://notes.sjtu.edu.cn/uploads/upload_5879015cd51b787ca781b64ac3e5e7b2.png" width="800">
 
 
 ### B+ 树加锁方法
 
 B+ 树加锁采用 "螃蟹法则"。具体请见下图。 
 
-![](https://notes.sjtu.edu.cn/uploads/upload_9c4c517643c2ab7eba276408e2233d8f.png)
+<img src="https://notes.sjtu.edu.cn/uploads/upload_9c4c517643c2ab7eba276408e2233d8f.png" width="800">
 
-![](https://notes.sjtu.edu.cn/uploads/upload_38c70fad05997aaf4ffb671539067d16.png)
+<img src="https://notes.sjtu.edu.cn/uploads/upload_38c70fad05997aaf4ffb671539067d16.png" width="800">
 
-这里我用大白话再解释一遍： 拿 insert 函数举例， 我们在搜索路径上每次都先拿 parent 结点的锁， 然后拿 child 结点的锁， 如果 child 结点是 "安全" 的， 就自上而下释放一路走下来所有 parent 结点的锁。（自上而下和自下而上都可以，但是自上而下能更快冲淡堵塞）
 
-对于“安全”， 只要child page插入时不满， 或者删除时至少半满，那就安全。 注意这里的child 不一定是指leaf page.为什么呢？ 就拿insertion举例，我们一路走下去的时候，路上遇到的那些不满的page, 如果leaf page要分裂的话，原路返回的时候也不可能引起那些不满的page的分裂。 所以我们可以保证从这个不满的结点往上，都是安全的， 不会分裂的， 不用加写锁， 所以可以把写锁全都放掉。 deletion就是同理。
+这里我用大白话再解释一遍： 拿 `insert` 函数举例， 我们在搜索路径上每次都先拿 parent 结点的锁， 然后拿 child 结点的锁， 如果 child 结点是 "安全" 的， 就自上而下释放一路走下来所有 parent 结点的锁。（自上而下和自下而上都可以，但是自上而下能更快冲淡堵塞）
 
+所谓的 "安全" 如何定义？ 只要 `child page` 插入时不满， 或者删除时至少半满，那就安全。 
+
+进阶螃蟹法则（乐观锁）的意思就是， 对于写的线程仍然先拿读锁， 如果发现遇到了不安全的 `leaf page`, 可能引起上方的 `internal page` 也发生分裂， 那我立刻放弃继续执行乐观锁策略， 然后重新开始，依照普通的螃蟹法则进行写入的操作。
 
 ## 主体任务
 
-请你修改 src/include/storage/index/b_plus_tree.h 和 src/storage/index/b_plus_tree.cpp, 实现 b+ 树的查找、插入和删除函数。 在此之后， 请你完善 b+ 树的查找、插入、删除函数， 使其线程安全。
+请你修改 `src/include/storage/index/b_plus_tree.h` 和 `src/storage/index/b_plus_tree.cpp`, 实现 b+ 树的查找、插入和删除函数。 在此之后， 请你完善 b+ 树的查找、插入、删除函数， 使其线程安全。
 
 ## 熟悉项目代码
 
-请跟着我一步一步熟悉那些本次 project 需要用到的代码。 让我们从 IO 的基本单元 page 开始。
+请跟着我一步一步熟悉那些本次 project 需要用到的代码文件。 让我们从 IO 的基本单元 `page` 开始。
 
 #### page
 
@@ -87,13 +89,13 @@ B+ 树加锁采用 "螃蟹法则"。具体请见下图。
   ReaderWriterLatch rwlatch_;
 ```
 
-所以， 我们为每个 page 都实现了一个读写锁 `rwlatch_`, 我们之后的加锁是为 page 加锁。 其次， 我们的 page 包含一个 char * 区域存储 page 内部包含的数据。 其他成员你可以忽略。
+所以， 我们为每个 `page` 都实现了一个读写锁 `rwlatch_`, 我们之后的加锁是为 `page` 加锁。 其次， 我们的 `page` 包含一个 `char *` 区域存储 `page` 内部包含的数据。 其他成员你可以忽略。
 
 #### b_plus_tree_page
 
 其次, 请看 `src/include/storage/page/b_plus_tree_page.h`:
 
-我们的 B+ 树的 page 存储在上方原始 page 的 data 区域。 你可以认为， 上方的 page 包裹着这里的 b_plus_tree_page。
+我们的 B+ 树的 `page` 存储在上方原始 `page` 的 `data` 区域。 你可以认为， 上方的 `page` 包裹着这里的 `b_plus_tree_page`。
 
 ```cpp
 /**
@@ -120,7 +122,7 @@ class BPlusTreePage
 };
 ```
 
-此外， 请见 `src/include/storage/page/b_plus_tree_header_page.h`, 我们在这里定义了一个特殊的 header page 类型， 它存储着 B+ 树的根节点。 特殊定义一个 header page 有助于提升并发表现。
+此外， 请见 `src/include/storage/page/b_plus_tree_header_page.h`, 我们在这里定义了一个特殊的 `header page` 类型， 它存储着 B+ 树的根节点。 特殊定义一个 `header page` 有助于提升并发表现。
 
 ```cpp
 class BPlusTreeHeaderPage
@@ -134,13 +136,13 @@ class BPlusTreeHeaderPage
 };
 ```
 
-请注意， 我们在 page 内部存储指向另一个 page 的 "指针" 时, 我们都是存储 page_id, 因为这些 page 在磁盘上。
+请注意， 我们在 `page` 内部存储指向另一个 `page` 的 "指针" 时, 由于 page 的真正位置在磁盘上， 我们采取存储 `page_id` 的策略， 而不是存储 `page` 指针。 `page_id` 可以唯一标识一个 `page`, 它的实现细节你可以忽略。
 
-然后， 请见 `src/include/storage/page/b_plus_tree_internal_page.h`, `src/include/storage/page/b_plus_tree_leaf_page.h`. 我们的 internal page 和 leaf page 类都继承自 BPlusTreePage. internal page 对应 B+ 树的内部结点， leaf page 对应 B+ 树的叶子结点。对于 internal page, 它存储着 n 个 索引的 key值 和 n + 1 个指向 children page 的指针。 对于 LeafPage, 它存储着 n 个 索引的 key 值和 n 个对应的数据行 ID。 这里的 "KeyAt", "SetKeyAt", "ValueAt", "SetValueAt" 可用于键值对的查询与更新， 会在 B+ 树的编写中用到。
+然后， 请见 `src/include/storage/page/b_plus_tree_internal_page.h`, `src/include/storage/page/b_plus_tree_leaf_page.h`. 我们的 `internal page` 和 `leaf page` 类都继承自 `BPlusTreePage`. `Internal page` 对应 B+ 树的内部结点， `leaf page` 对应 B+ 树的叶子结点。对于 `internal page`, 它存储着 n 个 索引 key 和 n + 1 个指向 `children page` 的指针。 对于 `LeafPage`, 它存储着 n 个 索引 key 和 n 个对应的数据行 ID。 这里的 `"KeyAt", "SetKeyAt", "ValueAt", "SetValueAt"` 可用于键值对的查询与更新， 会在 B+ 树的编写中用到。
 
 #### page_guard
 
-然后， 请见 `src/include/storage/page/page_guard.h`。 我们在 page.h 中可以看到， 每个 page 都附带了一个读写锁。 但是我们通常会遗忘掉释放锁， 为了解决这一问题， 我们使用 RAII 思想为 page 写了一个封装起来的类: page_guard。 page_guard 即在构造函数里获取锁， 在析构函数里释放锁。 我们对应设计了 `ReadPageGuard` 和 `WritePageGuard`. 在这个 .h 文件里你还需要关注 page_guard 的 `As` 函数， 可以获取 page_guard 封装起来的 page 的 data 区域, 将这块区域重新解释为某一类型。此外， `Drop` 成员函数相当于手动调用析构函数： 它会释放对于 page 的所有权
+然后， 请见 `src/include/storage/page/page_guard.h`。 我们在 `page.h` 中可以看到， 每个 `page` 都附带了一个读写锁。 为了避免遗忘释放锁这一操作， 我们使用 RAII 思想为 `page` 写了一个封装后的新类: `page_guard`。 `page_guard` 会在构造函数里获取锁， 在析构函数里释放锁。 我们对应设计了 `ReadPageGuard` 和 `WritePageGuard`. 在这个 .h 文件里你还需要关注 `page_guard` 的 `As` 函数， 可以获取 `page_guard` 封装起来的 `page` 的 `data` 区域, 将这块区域重新解释为某一类型。此外， `Drop` 成员函数相当于手动调用析构函数： 它会释放对于 `page` 的所有权
 
 例如，请看我在 `src/storage/index/b_plus_tree.cpp` 给出的示例函数 `IsEmpty`:
 
@@ -159,7 +161,7 @@ auto BPLUSTREE_TYPE::IsEmpty() const  ->  bool
 }
 ```
 
-这里的 `guard.template As<BPlusTreeHeaderPage>();` 即为获取我们读到的 `ReadPageGuard`, 获取它封装的 `page` 的 data 区域， 将这块区域重新解释为 `BPlusTreeHeaderPage` 类型。 也就是， 我们获取了一个用来读的 `page`， 然后把这个 `page` 里面的数据解释为 `BPlusTreeHeaderPage`， 读取 header page 里的 root_page_id 信息， 检查是否是 INVALID.
+这里的 `guard.template As<BPlusTreeHeaderPage>();` 即为获取我们读到的 `ReadPageGuard` 封装的 `page` 的 `data` 区域， 将这块区域重新解释为 `BPlusTreeHeaderPage` 类型。 也就是， 我们获取了一个用来读的 `page`， 然后把这个 `page` 里面的数据解释为 `BPlusTreeHeaderPage`， 从而读取 `header page` 里的 `root_page_id` 信息， 检查是否是 `INVALID`.
 
 上方有一个很奇怪的函数， 叫做 `bpm_ -> FetchPageRead`, 这是什么呢？ 请接着看。
 
@@ -172,7 +174,7 @@ auto BPLUSTREE_TYPE::IsEmpty() const  ->  bool
   auto FetchPageWrite(page_id_t page_id) -> WritePageGuard;
 ```
 
-请你在本次 project 中将它们视为一个黑盒，`bpm_ -> FetchPageRead` 和 `bpm_ -> FetchPageWrite` 用于通过磁盘 IO ， 根据 page id 得到一个用于读的 `ReadPageGuard` 或者一个用于写 `WritePageGuard`. 如果你好奇其中的细节(如缓存池)， 请私信我。 `ReadPageGuard` 会自动获取该 page 的读锁， 并在析构时释放读锁。 `WritePageGuard` 会自动获取该 page 的写锁， 并在析构时释放写锁。
+请你在本次 project 中将它们视为一个黑盒，`bpm_ -> FetchPageRead` 和 `bpm_ -> FetchPageWrite` 用于通过磁盘 IO ， 根据 `page id` 得到一个用于读的 `ReadPageGuard` 或者一个用于写 `WritePageGuard`. 如果你好奇其中的细节(如缓存池)， 请私信我。 `ReadPageGuard` 会自动获取该 `page` 的读锁， 并在析构时释放读锁。 `WritePageGuard` 会自动获取该 `page` 的写锁， 并在析构时释放写锁。
 
 
 下面是一些使用 `FetchPageRead / FetchPageWrite` 的例子：
@@ -199,7 +201,7 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
     //读到 root page, 即 B+ 树的根节点
 
   head_guard.Drop();
-  //析构 header page
+  //提前手动析构 header page
 
   auto tmp_page = guard.template As<BPlusTreePage>();
     //下面需要一步步寻找参数 key， 先把 guard 的 data 部分解释为 BPlusTreePage. 这一步实际上是我们这个 project 的惯例 : 拿到 page guard, 然后用 As 成员函数拿到 b_plus_tree_page 的指针。
@@ -245,9 +247,9 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
 
 请见 `src/include/storage/index/b_plus_tree.h` 与 `src/storage/index/b_plus_tree.cpp`
 
-请注意，你并不需要关心任何和 `BufferPoolManager`, `Transaction` 相关的数据成员。
+请注意，你并不需要关心任何和 `BufferPoolManager`, `Transaction` 相关的数据成员和函数参数。 
 
-你需要实现 B+ 树的查找(GetValue)、插入（Insert）与删除(Remove)操作。 请注意， 整个 B+ 树存储于磁盘上， 因此每个结点都是以 page 形式存在， 需要使用 `FetchPageRead / FetchPageWritez` 函数从磁盘拿到内存中。
+你需要实现 B+ 树的查找(GetValue)、插入（Insert）与删除(Remove)操作。 请注意， 整个 B+ 树存储于磁盘上， 因此每个结点都是以 page 形式存在， 需要使用 `FetchPageRead / FetchPageWrite` 函数将 page 从磁盘拿到内存中。
 
 ```cpp
 /*****************************************************************************
@@ -310,7 +312,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType& key, Transaction* txn)
 
 请见 `src/include/storage/index/b_plus_tree.h`.
 
-Context 类可用于编写 B+ 树的螃蟹法则， 存储一条链上的锁。
+`Context` 类可用于编写 B+ 树的螃蟹法则。 你可以使用它存储一条链上的锁， 也可以自己实现一个数据结构实现螃蟹法则。
 
 ```cpp
 /**
@@ -343,15 +345,15 @@ class Context {
 
 推荐你采取这样的路径进行编写：
 
-+ 简单的插入操作。 在不考虑分裂的情况下编写 insert 函数。
++ 简单的插入操作。 在不考虑分裂的情况下编写 `insert` 函数。
 
 + 查找操作。 
 
 实现以上二者之后请测试二者是否正确。
 
-+ 简单的分裂操作。 请你编写 insert 函数， 考虑只有一个结点被分裂的情况。 (即此时不会递归分裂)
++ 简单的分裂操作。 请你编写 `insert` 函数， 考虑只有一个结点被分裂的情况。 (即此时不会递归分裂)
 
-+ 递归的分裂操作。 请你继续编写 insert 函数， 考虑递归分类的情况。
++ 递归的分裂操作。 请你继续编写 `insert` 函数， 考虑递归分类的情况。
 
 到这里， 你应该可以通过 insert test。
 
@@ -361,13 +363,15 @@ class Context {
 
 + 复杂的合并 / 借用操作。 此时会递归发生合并 / 借用。
 
+到这里， 你应该可以通过 delete test。
+
 + 为以上函数增添并发组件， 使其线程安全。
 
 ## 测试方法
 
 ### 本地测试
 
-请根目录执行
+请到根目录执行
 
 ```shell
 sudo build_support/packages.sh #Linux 环境请执行这个
@@ -383,7 +387,8 @@ cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 ```shell
 cd build #进入 build 目录， 如果已经在 build 目录请忽略
-make b_plus_tree_insert_test b_plus_tree_delete_test b_plus_tree_contention_test b_plus_tree_concurrent_test -j$(nproc) #并行编译所有测试单元。 如果你暂时只想执行一部分测试程序， 请只 make 对应的 b_plus_tree_*_test。
+make b_plus_tree_insert_test b_plus_tree_delete_test b_plus_tree_contention_test b_plus_tree_concurrent_test -j$(nproc)
+ #并行编译所有测试单元。 如果你暂时只想执行一部分测试程序， 请只 make 对应的 b_plus_tree_*_test。 
 ```
 
 待编译好之后， 可以这样测试:
@@ -402,13 +407,15 @@ cd build #进入 build 目录， 如果已经在 build 目录请忽略
 
 ## 评分标准
 
+``` python
 ./test/b_plus_tree_insert_test              45分
 ./test/b_plus_tree_delete_test              45分
 ./test/b_plus_tree_contention_test          20分
 ./test/b_plus_tree_concurrent_test          20分
 Code Review                                 10分
+```
 
-满分上限为 120 分， 溢出 100 分的部分抵消之前大作业所扣分数。
+满分上限为 __120__ 分， 溢出 __100__ 分的部分抵消之前大作业所扣分数。
 
 
-Acknowledgement : CMU15445 Database System.
+Acknowledgement : CMU15445 Database System. (https://15445.courses.cs.cmu.edu/spring2023/project2/).
