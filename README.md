@@ -4,6 +4,8 @@
 
 在这次 project 中， 我们会为 bustub 关系型数据库编写 B+ 树索引。完成本次 project 不需要具备额外的数据库相关知识。
 
+DDL(暂定) : 第 17 周周日，`2024 年 6 月 16 日 23:59` 
+
 ## 基础知识
 
 在开始这个 project 之前， 我们需要了解一些基础知识。 由于课上已学习过 B 树与 B+ 树，这里没有对 B 树与 B+ 树进行介绍， 如有需要请查阅相关课程 PPT。如果你对 B+ 树进行操作后的结构有疑惑， 请在 https://www.cs.usfca.edu/~galles/visualization/BPlusTree.html 网站上进行尝试。 此外， 这个博客的动图非常生动： https://zhuanlan.zhihu.com/p/149287061。
