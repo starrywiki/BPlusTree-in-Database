@@ -138,13 +138,13 @@ class BPlusTreeHeaderPage
 };
 ```
 
-请注意， 我们在 `page` 内部存储指向另一个 `page` 的 "指针" 时, 由于 page 的真正位置在磁盘上， 我们采取存储 `page_id` 的策略， 而不是存储 `page` 指针。 `page_id` 可以唯一标识一个 `page`, 它的实现细节你可以忽略。
+请注意， 我们在 `page` 内部存储指向另一个 `page` 的 "指针" 时, 由于 `page` 的真正位置在磁盘上， 我们采取存储 `page_id` 的策略， 而不是显式存储 `page` 指针。 `page_id` 可以唯一标识一个 `page`, 它的实现细节你可以忽略。
 
 然后， 请见 `src/include/storage/page/b_plus_tree_internal_page.h`, `src/include/storage/page/b_plus_tree_leaf_page.h`. 我们的 `internal page` 和 `leaf page` 类都继承自 `BPlusTreePage`. `Internal page` 对应 B+ 树的内部结点， `leaf page` 对应 B+ 树的叶子结点。对于 `internal page`, 它存储着 n 个 索引 key 和 n + 1 个指向 `children page` 的指针。 对于 `LeafPage`, 它存储着 n 个 索引 key 和 n 个对应的数据行 ID。 这里的 `"KeyAt", "SetKeyAt", "ValueAt", "SetValueAt"` 可用于键值对的查询与更新， 会在 B+ 树的编写中用到。
 
 #### page_guard
 
-然后， 请见 `src/include/storage/page/page_guard.h`。 我们在 `page.h` 中可以看到， 每个 `page` 都附带了一个读写锁。 为了避免遗忘释放锁这一操作， 我们使用 RAII 思想为 `page` 写了一个封装后的新类: `page_guard`。 `page_guard` 会在构造函数里获取锁， 在析构函数里释放锁。 我们对应设计了 `ReadPageGuard` 和 `WritePageGuard`. 在这个 .h 文件里你还需要关注 `page_guard` 的 `As` 函数， 可以获取 `page_guard` 封装起来的 `page` 的 `data` 区域, 将这块区域重新解释为某一类型。此外， `Drop` 成员函数相当于手动调用析构函数： 它会释放对于 `page` 的所有权
+然后， 请见 `src/include/storage/page/page_guard.h`。 我们在 `page.h` 中可以看到， 每个 `page` 都附带了一个读写锁。 为了避免遗忘释放锁这一操作， 我们使用 RAII 思想为 `page` 写了一个封装后的新类: `page_guard`。 `page_guard` 会在构造函数里获取锁， 在析构函数里释放锁。 我们对应设计了 `ReadPageGuard` 和 `WritePageGuard`. 在这个 .h 文件里你还需要关注 `page_guard` 的 `As` 函数， 可以获取 `page_guard` 封装起来的 `page` 的 `data` 区域, 将这块区域重新解释为某一类型。此外， `Drop` 成员函数相当于手动调用析构函数： 它会释放对于 `page` 的所有权， 释放该 `page` 的锁。
 
 例如，请看我在 `src/storage/index/b_plus_tree.cpp` 给出的示例函数 `IsEmpty`:
 
@@ -251,7 +251,7 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
 
 请注意，你并不需要关心任何和 `BufferPoolManager`, `Transaction` 相关的数据成员和函数参数。 
 
-你需要实现 B+ 树的查找(GetValue)、插入（Insert）与删除(Remove)操作。 请注意， 整个 B+ 树存储于磁盘上， 因此每个结点都是以 page 形式存在， 需要使用 `FetchPageRead / FetchPageWrite` 函数将 page 从磁盘拿到内存中。
+你需要实现 B+ 树的查找 (`GetValue`)、插入（`Insert`）与删除 (`Remove`) 操作。 请注意， 整个 B+ 树存储于磁盘上， 因此每个结点都是以 `page` 形式存在， 需要使用 `FetchPageRead / FetchPageWrite` 函数将 `page` 从磁盘拿到内存中。
 
 ```cpp
 /*****************************************************************************
@@ -361,7 +361,7 @@ class Context {
 
 + 简单的删除操作。 此时不会发生合并或者借用。
 
-+ 简单的合并 / 借用操作。 此时只会发生一次合并。
++ 简单的合并 / 借用操作。 
 
 + 复杂的合并 / 借用操作。 此时会递归发生合并 / 借用。
 
@@ -373,19 +373,19 @@ class Context {
 
 ### 本地测试
 
-请到根目录执行
+请到该项目的根目录执行
 
 ```shell
-sudo build_support/packages.sh #Linux 环境请执行这个
+sudo build_support/packages.sh # Linux 环境请执行这个
 build_support/packages.sh # macOS 可以直接这样执行
-#windows 环境请使用 wsl 或者虚拟机
+# Windows 环境请使用 wsl 或者虚拟机
 
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Debug ..
 ```
 
-之后， 每次测试需要重新 make, 命令如下:
+之后， 每次测试需要重新 `make`, 命令如下:
 
 ```shell
 cd build #进入 build 目录， 如果已经在 build 目录请忽略
@@ -410,14 +410,14 @@ cd build #进入 build 目录， 如果已经在 build 目录请忽略
 ## 评分标准
 
 ``` python
-./test/b_plus_tree_insert_test              45分
-./test/b_plus_tree_delete_test              45分
-./test/b_plus_tree_contention_test          20分
-./test/b_plus_tree_concurrent_test          20分
-Code Review                                 10分
+./test/b_plus_tree_insert_test              45 分
+./test/b_plus_tree_delete_test              45 分
+./test/b_plus_tree_contention_test          25 分
+./test/b_plus_tree_concurrent_test          25 分
+Code Review                                 10 分
 ```
 
-满分上限为 __120__ 分， 溢出 __100__ 分的部分抵消之前大作业与小作业所扣分数。
+满分上限为 __120__ 分，加满为止。 溢出 __100__ 分的部分抵消之前大作业与小作业所扣分数。
 
 ### 试一试你自己的数据库！(optional)
 
