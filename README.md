@@ -1,4 +1,4 @@
-# Project4 : B+ tree in Database
+# Project5 : B+ tree in Database
 
 这是 CS1959(2023 - 2024 - 2) 程序设计与数据结构课程的第 5 个 project: 实现数据库中的 B+ 树。
 
