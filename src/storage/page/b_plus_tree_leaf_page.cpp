@@ -67,20 +67,30 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetAt(int index, const KeyType& key,
     array_[index] = {key, value};
     return;
   }
-  // std::cout << "set all, out of leaf range" << std::endl;
 }
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::SetKeyAt(int index, const KeyType& key)
+{
+  array_[index].first = key;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::SetValueAt(int index, const ValueType& value)
+{
+  array_[index].second = value;
+}
+
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType
 {
-  // replace with your own code
   return array_[index].first;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const -> ValueType
 {
-  // replace with your own code
   return array_[index].second;
 }
 

@@ -107,8 +107,7 @@ class BufferPoolManager
    * @return BasicPageGuard holding a new page
    */
   auto NewPageGuarded(page_id_t* page_id,
-                      AccessType access_type = AccessType::Unknown)
-      -> BasicPageGuard;
+                      AccessType access_type = AccessType::Unknown) -> BasicPageGuard;
 
   /**
    * TODO(P1): Add implementation

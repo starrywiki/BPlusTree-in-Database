@@ -1,16 +1,16 @@
 # Project5 : B+ tree in Database
 
-这是 CS1959(2023 - 2024 - 2) 程序设计与数据结构课程的第 5 个 project: 实现数据库中的 B+ 树。
+这是 "CS1959 (2023 - 2024 - 2) —— 程序设计与数据结构 II" 课程的第 5 个 project: 实现数据库中的 B+ 树。
 
 在这次 project 中， 我们会为 bustub 关系型数据库编写 B+ 树索引。完成本次 project 不需要具备额外的数据库相关知识。
 
 DDL(暂定) : 第 17 周周日，`2024 年 6 月 16 日 23:59` 
 
-## 基础知识
+# 基础知识
 
 在开始这个 project 之前， 我们需要了解一些基础知识。 由于课上已学习过 B 树与 B+ 树，这里没有对 B 树与 B+ 树进行介绍， 如有需要请查阅相关课程 PPT。如果你对 B+ 树进行操作后的结构有疑惑， 请在 https://www.cs.usfca.edu/~galles/visualization/BPlusTree.html 网站上进行尝试。 此外， 这个博客的动图非常生动： https://zhuanlan.zhihu.com/p/149287061。
 
-### 数据库的简单介绍(optional)
+## 数据库的简单介绍(optional)
 
 我们所说的数据库通常指数据库管理系统(DBMS, 即 Database Management System)。 我们可以简单理解为组织管理庞大数据的一个软件。
 
@@ -26,7 +26,7 @@ DDL(暂定) : 第 17 周周日，`2024 年 6 月 16 日 23:59`
 
 如果你并不能看懂上图也没有关系。对于本次 project， 我们只需要关心 "存储引擎" 部分。下面我将介绍 bustub 数据库的存储引擎。
 
-### 存储引擎与 B+ 树
+## 存储引擎与 B+ 树
 
 我们的 bustub 数据库的存储引擎将数据存储在磁盘上， 实现数据的持久化。我们知道， 磁盘的一大特征便是空间大但访问速度非常慢， 因此， 我们希望能减少对于磁盘的交互访问 (以下称为磁盘 IO) 次数。
 
@@ -37,11 +37,12 @@ DDL(暂定) : 第 17 周周日，`2024 年 6 月 16 日 23:59`
 
 Tips: 以上所说的是主键索引的情况，实际上数据库还有其他多种索引方式， 但与本次 project 无关， 有兴趣的同学可以自行了解。
 
-### 存储引擎与数据页(optional)
+## 存储引擎与数据页(optional)
 
 
 根据上方的表格图像，我们每行都存储了一条数据信息。但如果用户执行查询操作， 我们并不能以 "行" 为单位读取数据， 否则一次磁盘 IO 只能处理一行， 执行效率过低。 我们这里采取的策略是以 "page"（数据页）为单位进行磁盘 IO。 我们可以简单地将一个 page 视为是固定大小的一块存储空间。 通过打包一系列数据行进入同一个 page， 可以实现减少磁盘 IO 的效果。这里我们并不需要了解 page 的细节，与磁盘的 IO 操作已被封装为以下几个函数: `FetchPageRead`，`FetchPageWrite`。我会在之后详细说明这两个函数。 
 
+Tips: 如果你听说过内存分页， 内存中的 `page` 和这里的 `page` 并不是同一概念。 请不要混淆。 另外， 如果你接触过文件系统， 我们的 bustub 数据库是建立于操作系统管理的文件系统之上的。 这里采取的策略是将数据表和对应的元数据存入一个或多个文件。
 
 <img src="https://notes.sjtu.edu.cn/uploads/upload_5879015cd51b787ca781b64ac3e5e7b2.png" width="800">
 
@@ -61,15 +62,15 @@ B+ 树加锁采用 "螃蟹法则"。具体请见下图。
 
 进阶螃蟹法则（乐观锁）的意思就是， 对于写的线程仍然先拿读锁， 如果发现遇到了不安全的 `leaf page`, 可能引起上方的 `internal page` 也发生分裂， 那我立刻放弃继续执行乐观锁策略， 然后重新开始，依照普通的螃蟹法则进行写入的操作。
 
-## 主体任务
+# 主体任务
 
 请你修改 `src/include/storage/index/b_plus_tree.h` 和 `src/storage/index/b_plus_tree.cpp`, 实现 b+ 树的查找、插入和删除函数。 在此之后， 请你完善 b+ 树的查找、插入、删除函数， 使其线程安全。
 
-## 熟悉项目代码
+# 熟悉项目代码
 
 请跟着我一步一步熟悉那些本次 project 需要用到的代码文件。 让我们从 IO 的基本单元 `page` 开始。
 
-#### page
+## page
 
 首先， 请看 `src/include/storage/page/page.h `:
 
@@ -93,7 +94,7 @@ B+ 树加锁采用 "螃蟹法则"。具体请见下图。
 
 所以， 我们为每个 `page` 都实现了一个读写锁 `rwlatch_`, 我们之后的加锁是为 `page` 加锁。 其次， 我们的 `page` 包含一个 `char *` 区域存储 `page` 内部包含的数据。 其他成员你可以忽略。
 
-#### b_plus_tree_page
+## b_plus_tree_page
 
 其次, 请看 `src/include/storage/page/b_plus_tree_page.h`:
 
@@ -138,15 +139,199 @@ class BPlusTreeHeaderPage
 };
 ```
 
-请注意， 我们在 `page` 内部存储指向另一个 `page` 的 "指针" 时, 由于 `page` 的真正位置在磁盘上， 我们采取存储 `page_id` 的策略， 而不是显式存储 `page` 指针。 `page_id` 可以唯一标识一个 `page`, 它的实现细节你可以忽略。
+请注意， 我们在 `page` 内部存储指向另一个 `page` 的 "指针" 时, 由于(不考虑缓存池的情况下) `page` 的真正位置在磁盘上， 因此我们采取存储 `page_id` 的策略， 而不是显式存储 `page` 指针。 `page_id` 可以唯一标识一个 `page`, 它的实现细节你可以忽略。 具体而言， 我们会得到一个函数 (即后文的 `NewPageGuarded`) 用于 "新建 `page`, 分配对应 `page id` 并返回该 `page_id`"。   
 
-然后， 请见 `src/include/storage/page/b_plus_tree_internal_page.h`, `src/include/storage/page/b_plus_tree_leaf_page.h`. 我们的 `internal page` 和 `leaf page` 类都继承自 `BPlusTreePage`. `Internal page` 对应 B+ 树的内部结点， `leaf page` 对应 B+ 树的叶子结点。对于 `internal page`, 它存储着 n 个 索引 key 和 n + 1 个指向 `children page` 的指针。 对于 `LeafPage`, 它存储着 n 个 索引 key 和 n 个对应的数据行 ID。 这里的 `"KeyAt", "SetKeyAt", "ValueAt", "SetValueAt"` 可用于键值对的查询与更新， 会在 B+ 树的编写中用到。
+然后， 请见 `src/include/storage/page/b_plus_tree_internal_page.h`, `src/include/storage/page/b_plus_tree_leaf_page.h`:
 
-#### page_guard
+```cpp
+INDEX_TEMPLATE_ARGUMENTS
+// 这是为了写模板简便定义的一个宏：
+// #define INDEX_TEMPLATE_ARGUMENTS template <typename KeyType, typename ValueType, typename KeyComparator>
+class BPlusTreeInternalPage : public BPlusTreePage
+{
+  public:
+  // Delete all constructor / destructor to ensure memory safety
+  BPlusTreeInternalPage() = delete;
+  BPlusTreeInternalPage(const BPlusTreeInternalPage& other) = delete;
+  //...
+  auto KeyAt(int index) const -> KeyType;
+  auto ValueAt(int index) const -> ValueType;
+  void SetKeyAt(int index, const KeyType& key);
+  auto ValueIndex(const ValueType& value) const -> int;
+  private:
+  // Flexible array member for page data.
+  MappingType array_[0];
+  //MappingType 是这样定义的一个宏： #define MappingType std::pair<KeyType, ValueType>
+};
+```
 
-然后， 请见 `src/include/storage/page/page_guard.h`。 我们在 `page.h` 中可以看到， 每个 `page` 都附带了一个读写锁。 为了避免遗忘释放锁这一操作， 我们使用 RAII 思想为 `page` 写了一个封装后的新类: `page_guard`。 `page_guard` 会在构造函数里获取锁， 在析构函数里释放锁。 我们对应设计了 `ReadPageGuard` 和 `WritePageGuard`. 在这个 .h 文件里你还需要关注 `page_guard` 的 `As` 函数， 可以获取 `page_guard` 封装起来的 `page` 的 `data` 区域, 将这块区域重新解释为某一类型。此外， `Drop` 成员函数相当于手动调用析构函数： 它会释放对于 `page` 的所有权， 释放该 `page` 的锁。
+```cpp
+INDEX_TEMPLATE_ARGUMENTS
+// 这是为了写模板简便定义的一个宏：
+// #define INDEX_TEMPLATE_ARGUMENTS template <typename KeyType, typename ValueType, typename KeyComparator>
+class BPlusTreeLeafPage : public BPlusTreePage
+{
+  public:
+  // Delete all constructor / destructor to ensure memory safety
+  BPlusTreeLeafPage() = delete;
+  BPlusTreeLeafPage(const BPlusTreeLeafPage& other) = delete;
+  //...
+  auto KeyAt(int index) const -> KeyType;
+  auto ValueAt(int index) const -> ValueType;
+  void SetKeyAt(int index, const KeyType& key);
+  void SetValueAt(int index, const ValueType & value);
+  private:
+  page_id_t next_page_id_;
+  // Flexible array member for page data.
+  MappingType array_[0];
+  //MappingType 是这样定义的一个宏： #define MappingType std::pair<KeyType, ValueType>
+};
+```
 
-例如，请看我在 `src/storage/index/b_plus_tree.cpp` 给出的示例函数 `IsEmpty`:
+
+我们的 `internal page` 和 `leaf page` 类都继承自 `BPlusTreePage`. `Internal page` 对应 B+ 树的内部结点， `leaf page` 对应 B+ 树的叶子结点。对于 `internal page`, 它存储着 n 个 索引 key 和 n + 1 个指向 `children page` 的指针。 对于 `LeafPage`, 它存储着 n 个 索引 key 和 n 个对应的数据行 ID。 这里的 `"KeyAt", "SetKeyAt", "ValueAt", "SetValueAt"` 可用于键值对的查询与更新， 会在 B+ 树的编写中用到。
+
+## page_guard
+
+然后， 请见 `src/include/storage/page/page_guard.h`。 我们在 `page.h` 中可以看到， 每个 `page` 都附带了一个读写锁。 为了避免遗忘释放锁这一操作， 我们使用 RAII 思想为 `page` 写了一个封装后的新类: `page_guard`。 
+
+下面是 `page_guard` 的原型：
+
+```cpp
+// PageGuard 系列逻辑上的基类 BasicPageGuard
+// 是创建新页时的返回类型
+// 它不会自动上锁 + 解锁！
+class BasicPageGuard
+{
+  public:
+  BasicPageGuard() = default;
+  BasicPageGuard(BufferPoolManager* bpm, Page* page) : bpm_(bpm), page_(page) {}
+
+  BasicPageGuard(const BasicPageGuard&) = delete; 
+  auto operator=(const BasicPageGuard&) -> BasicPageGuard& = delete;
+  // 请注意， 我们删掉了拷贝构造和拷贝构造函数哦
+  BasicPageGuard(BasicPageGuard&& that) noexcept;
+  auto operator=(BasicPageGuard&& that) noexcept -> BasicPageGuard&;
+  // 如果有需要， 请使用移动构造函数和移动赋值函数
+  // (对于内部实现而言， 这样才能保证 PageGuard 对于 Pin_Count 和锁的正确管理)
+
+  void Drop();
+  // Drop 函数相当于手动析构
+
+  ~BasicPageGuard();
+  auto UpgradeRead() -> ReadPageGuard;
+  auto UpgradeWrite() -> WritePageGuard;
+  auto PageId() -> page_id_t { return page_->GetPageId(); }
+  auto GetData() -> const char* { return page_->GetData(); }
+  template <class T>
+  auto As() -> const T*
+  {
+    return reinterpret_cast<const T*>(GetData());
+  }
+  auto GetDataMut() -> char*
+  {
+    is_dirty_ = true;
+    return page_->GetData();
+  }
+  template <class T>
+  auto AsMut() -> T*
+  {
+    return reinterpret_cast<T*>(GetDataMut());
+  }
+  private:
+  friend class ReadPageGuard;
+  friend class WritePageGuard;
+
+  BufferPoolManager* bpm_{nullptr};
+  Page* page_{nullptr};
+  bool is_dirty_{false};
+};
+
+// ReadPageGuard 会在构造时获取读锁， 析构时释放读锁
+class ReadPageGuard
+{
+  public:
+  ReadPageGuard() = default;
+  ReadPageGuard(BufferPoolManager* bpm, Page* page);
+  ReadPageGuard(const ReadPageGuard&) = delete;
+  auto operator=(const ReadPageGuard&) -> ReadPageGuard& = delete;
+  ReadPageGuard(ReadPageGuard&& that) noexcept;
+  auto operator=(ReadPageGuard&& that) noexcept -> ReadPageGuard&;
+  void Drop();
+  ~ReadPageGuard();
+  auto PageId() -> page_id_t { return guard_.PageId(); }
+  auto GetData() -> const char* { return guard_.GetData(); }
+  template <class T>
+  auto As() -> const T*
+  {
+    return guard_.As<T>();
+  }
+  private:
+    BasicPageGuard guard_;
+    // 我们存了一个 BasicPageGuard
+    // 实现了逻辑上的继承
+    bool unlock_guard{false};
+};
+
+// WritePageGuard 会在构造时获取写锁， 析构时释放写锁
+class WritePageGuard
+{
+  public:
+  WritePageGuard() = default;
+  WritePageGuard(BufferPoolManager* bpm, Page* page);
+  WritePageGuard(const WritePageGuard&) = delete;
+  auto operator=(const WritePageGuard&) -> WritePageGuard& = delete;
+  WritePageGuard(WritePageGuard&& that) noexcept;
+  auto operator=(WritePageGuard&& that) noexcept -> WritePageGuard&;
+  void Drop();
+
+  ~WritePageGuard();
+  auto PageId() -> page_id_t { return guard_.PageId(); }
+  auto GetData() -> const char* { return guard_.GetData(); }
+  template <class T>
+  auto As() -> const T*
+  {
+    return guard_.As<T>();
+  }
+  auto GetDataMut() -> char* { return guard_.GetDataMut(); }
+  template <class T>
+  auto AsMut() -> T*
+  {
+    return guard_.AsMut<T>();
+  }
+  private:
+    BasicPageGuard guard_;
+    // 我们存了一个 BasicPageGuard
+    // 实现了逻辑上的继承
+    bool unlock_guard{false};
+};
+```
+
+简而言之， `page_guard` 会在构造函数里获取锁， 在析构函数里释放锁。 我们对应设计了 `BasicPageGuard` 和它的逻辑上的派生类 `ReadPageGuard` 、 `WritePageGuard`. 
+
+在这个 .h 文件里你还需要关注 `page_guard` 的 `As` 函数
+
+```cpp
+auto As() -> const T*
+{
+  return guard_.As<T>();
+}
+```
+
+它可以获取 `page_guard` 封装起来的 `page` 的 `data` 区域, 将这块区域重新解释为某一类型。此外， `Drop` 成员函数相当于手动调用析构函数： 它会释放对于 `page` 的所有权， 释放该 `page` 的锁。
+
+另外， `UpgradeRead` 与 `UpgradeWrite` 可以将 `BasicPageGuard` 升级为 `ReadPageGuard` / `WritePageGuard`, 相当于获取并自动管理读锁 / 写锁。 如果你希望新建一个 `page` 之后立刻为它上锁， 这两个函数可能会派生用场。
+
+```cpp
+auto UpgradeRead() -> ReadPageGuard;
+auto UpgradeWrite() -> WritePageGuard;
+```
+
+其他未提及的成员函数不是本次 project 必要的成员函数， 你可以忽略。
+
+### page_guard 使用示例
+
+请看我在 `src/storage/index/b_plus_tree.cpp` 给出的示例函数 `IsEmpty`:
 
 ```cpp
 INDEX_TEMPLATE_ARGUMENTS
@@ -167,16 +352,44 @@ auto BPLUSTREE_TYPE::IsEmpty() const  ->  bool
 
 上方有一个很奇怪的函数， 叫做 `bpm_ -> FetchPageRead`, 这是什么呢？ 请接着看。
 
-#### FetchPage by buffer pool manager
+## FetchPage by buffer pool manager
 
-请见 `src/include/buffer/buffer_pool_manager.h `. 这份代码实际上是用于实现缓存池， 具体内容你不需要理解。我们只需要用到其中两个函数：
+请见 `src/include/buffer/buffer_pool_manager.h `. 这份代码实际上是用于实现缓存池， 具体内容你不需要理解。
+
+我们需要用到的函数有：
 
 ```cpp
   auto FetchPageRead(page_id_t page_id) -> ReadPageGuard;
   auto FetchPageWrite(page_id_t page_id) -> WritePageGuard;
+  auto NewPageGuarded(page_id_t* page_id, AccessType access_type = AccessType::Unknown) -> BasicPageGuard;
 ```
 
-请你在本次 project 中将它们视为一个黑盒，`bpm_ -> FetchPageRead` 和 `bpm_ -> FetchPageWrite` 用于通过磁盘 IO ， 根据 `page id` 得到一个用于读的 `ReadPageGuard` 或者一个用于写 `WritePageGuard`. 如果你好奇其中的细节(如缓存池)， 请私信我。 `ReadPageGuard` 会自动获取该 `page` 的读锁， 并在析构时释放读锁。 `WritePageGuard` 会自动获取该 `page` 的写锁， 并在析构时释放写锁。
+请你在本次 project 中将它们视为一个黑盒。
+
+### Create New Page
+
+`NewPageGuarded` 函数用于新建一个新的 `page`， 为其分配它的唯一标识 `PAGE ID` 并将该 `PAGE ID` 填入参数 `page_id` 中， 最后以 `page_guard` 类的形式返回它。
+
+
+下面是一个使用 `NewPageGuarded` 函数的例子：
+
+```cpp
+page_id_t root_page_id;
+// 这个临时变量用于保存此时分配的 page id
+
+auto new_page_guard = bpm_ -> NewPageGuarded(&root_page_id);
+// 调用 `NewPageGuarded`, 该函数会新建一个 Page， 并为它分配 ID
+// 然后填入我们传入的 root_page_id 中
+// 最后以 page_guard 的形式返回给我们
+// 此时返回的是 page_guard 的基类 BasicPageGuard 
+// 请注意， 此时该 page 未上锁。
+// 如果你希望为它上锁， 可以使用上面提到的 UpgradeRead / UpgradeWrite
+// 你也可以尝试使用其他方法为 BasicPageGuard 上锁
+```
+
+### Fetch Page
+
+`bpm_ -> FetchPageRead` 和 `bpm_ -> FetchPageWrite` 用于通过磁盘 IO ， 根据 `page id` 得到一个用于读的 `ReadPageGuard` 或者一个用于写 `WritePageGuard`. 如果你好奇其中的细节(如缓存池)， 请私信我。 `ReadPageGuard` 会自动获取该 `page` 的读锁， 并在析构时释放读锁。 `WritePageGuard` 会自动获取该 `page` 的写锁， 并在析构时释放写锁。
 
 
 下面是一些使用 `FetchPageRead / FetchPageWrite` 的例子：
@@ -238,14 +451,14 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
 
   if (slot_num != -1)
   {
-    //如果找到了， 构造对应迭代器。
+    //如果找到了， 构造对应迭代器。这个迭代器可以用于顺序访问所有数据。 本次 project 中不涉及迭代器的处理。
     return INDEXITERATOR_TYPE(bpm_, guard.PageId(), slot_num);
   } 
   return End();
 }
-  ```
+```
 
-#### B+ 树核心代码
+## B+ 树核心代码
 
 请见 `src/include/storage/index/b_plus_tree.h` 与 `src/storage/index/b_plus_tree.cpp`
 
@@ -310,7 +523,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType& key, Transaction* txn)
 }
 ```
 
-#### Context
+## Context
 
 请见 `src/include/storage/index/b_plus_tree.h`.
 
@@ -342,8 +555,7 @@ class Context {
 };
 ```
 
-
-## 推荐的攻略
+# 推荐的攻略
 
 推荐你采取这样的路径进行编写：
 
@@ -369,9 +581,9 @@ class Context {
 
 + 为以上函数增添并发组件， 使其线程安全。
 
-## 测试方法
+# 测试方法
 
-### 本地测试
+## 本地测试
 
 请到该项目的根目录执行
 
@@ -403,11 +615,11 @@ cd build #进入 build 目录， 如果已经在 build 目录请忽略
 ./test/b_plus_tree_concurrent_test
 ```
 
-### 提交测试
+## 提交测试
 
 由于本次项目过大， ACMOJ 不具备相关功能。 因此， 请通过本地测试后将代码压缩发给我， 我会尽快在我的本机上进行测试。
 
-## 评分标准
+# 评分标准
 
 ``` python
 ./test/b_plus_tree_insert_test              45 分
@@ -421,7 +633,7 @@ Code Review                                 10 分
 
 如果你在 `Project3 : Set` 中正确完成了内存版本的 B+ 树， 可以选择不做本次 project 并通知助教, 本次 project 分数以 80 分计入。
 
-### 试一试你自己的数据库！(optional)
+# 试一试你自己的数据库！(optional)
 
 当你完成了对 B+ 树的编写后， 我们的数据库已经可以编译出接收 SQL 语句的 shell。
 
