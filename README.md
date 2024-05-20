@@ -115,7 +115,21 @@ B+ 树加锁采用 "螃蟹法则"。具体请见下图。
 class BPlusTreePage
 {
   public:
-    //...
+  // Delete all constructor / destructor to ensure memory safety
+  BPlusTreePage() = delete;
+  BPlusTreePage(const BPlusTreePage& other) = delete;
+  ~BPlusTreePage() = delete;
+
+  auto IsLeafPage() const -> bool;
+  void SetPageType(IndexPageType page_type);
+
+  auto GetSize() const -> int;
+  void SetSize(int size);
+  void IncreaseSize(int amount);
+
+  auto GetMaxSize() const -> int;
+  void SetMaxSize(int max_size);
+  auto GetMinSize() const -> int;
 
   private:
   // Member variables, attributes that both internal and leaf page share
@@ -124,6 +138,8 @@ class BPlusTreePage
   int max_size_;
 };
 ```
+
+在该类中， `GetSize` 用于得到该 `b_plus_tree_page` 当前存储的元素个数， `SetSize` 用于设置该 `b_plus_tree_page` 的元素个数， `IncreaseSize` 用于增加其元素个数。此外， `GetMaxSize` 可以得到该 `b_plus_tree_page` 允许存储的最大元素个数， `GetMinSize` 可以得到该 `b_plus_tree_page` 允许存储的最小元素个数。 这些成员函数会在插入和删除操作时派上用场。
 
 此外， 请见 `src/include/storage/page/b_plus_tree_header_page.h`, 我们在这里定义了一个特殊的 `header page` 类型， 它存储着 B+ 树的根节点。 特殊定义一个 `header page` 有助于提升并发表现。
 
