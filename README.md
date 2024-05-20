@@ -588,6 +588,14 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id,
 
 这里需要注意的是， 我们传入了一个比较函数的函数对象， 如果你希望对 `key` 进行比较， 请使用这里的 `comparator_` 函数对象。 
 
+如果你希望在测试时修改索引的值为某一整数， 你可以使用 `SetFromInteger`, 如
+
+```cpp
+  KeyType index_key;
+  index_key.SetFromInteger(key);
+  Remove(index_key, txn);
+```
+
 
 ## Context
 
