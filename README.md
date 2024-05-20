@@ -496,6 +496,12 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
 }
 ```
 
+### Write Page
+
+你可能会问， 为什么没有一个函数把 `page` 写回磁盘呢？ 实际上， 只要你析构 `PageGuard`, 对应的 `page` 就会自动写回磁盘。
+
+(这里有更多关于缓存池的细节， 如果感兴趣可以了解一下数据库缓存池)
+
 ## B+ 树核心代码
 
 请见 `src/include/storage/index/b_plus_tree.h` 与 `src/storage/index/b_plus_tree.cpp`
