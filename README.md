@@ -248,6 +248,7 @@ class BasicPageGuard
 
   void Drop();
   // Drop 函数相当于手动析构
+  // 请注意， 析构时会自动写入磁盘
 
   ~BasicPageGuard();
   auto UpgradeRead() -> ReadPageGuard;
@@ -349,7 +350,7 @@ auto As() -> const T*
 }
 ```
 
-它可以获取 `page_guard` 封装起来的 `page` 的 `data` 区域, 将这块区域重新解释为某一类型。此外， `Drop` 成员函数相当于手动调用析构函数： 它会释放对于 `page` 的所有权， 释放该 `page` 的锁。
+它可以获取 `page_guard` 封装起来的 `page` 的 `data` 区域, 将这块区域重新解释为某一类型。此外， `Drop` 成员函数相当于手动调用析构函数： 它会释放对于 `page` 的所有权， 释放该 `page` 的锁， 并将内容写入磁盘。
 
 另外， `UpgradeRead` 与 `UpgradeWrite` 可以将 `BasicPageGuard` 升级为 `ReadPageGuard` / `WritePageGuard`, 相当于获取并自动管理读锁 / 写锁。 如果你希望新建一个 `page` 之后立刻为它上锁， 这两个函数可能会派生用场。
 
