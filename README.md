@@ -172,8 +172,7 @@ class BPlusTreeInternalPage : public BPlusTreePage
   BPlusTreeInternalPage() = delete;
   BPlusTreeInternalPage(const BPlusTreeInternalPage& other) = delete;
   //...
-  auto GetNextPageId() const -> page_id_t;
-  void SetNextPageId(page_id_t next_page_id);
+  void Init(int max_size = INTERNAL_PAGE_SIZE);
   auto KeyAt(int index) const -> KeyType;
   auto ValueAt(int index) const -> ValueType;
   void SetKeyAt(int index, const KeyType& key);
@@ -196,6 +195,9 @@ class BPlusTreeLeafPage : public BPlusTreePage
   BPlusTreeLeafPage() = delete;
   BPlusTreeLeafPage(const BPlusTreeLeafPage& other) = delete;
   //...
+  void Init(int max_size = LEAF_PAGE_SIZE);
+  auto GetNextPageId() const -> page_id_t;
+  void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
   auto ValueAt(int index) const -> ValueType;
   void SetKeyAt(int index, const KeyType& key);
@@ -214,6 +216,8 @@ class BPlusTreeLeafPage : public BPlusTreePage
 `Internal page` 对应 B+ 树的内部结点， `leaf page` 对应 B+ 树的叶子结点。对于 `internal page`, 它存储着 n 个 索引 key 和 n + 1 个指向 `children page` 的指针。(由于我们以数组形式存储， 因此第一个数组元素对应的索引项无实际意义)  
 
 对于 `LeafPage`, 它存储着 n 个 索引 key 和 n 个对应的数据行 ID。 这里的 `"KeyAt", "SetKeyAt", "ValueAt", "SetValueAt"` 可用于键值对的查询与更新， 会在 B+ 树的编写中用到。所有的叶子节点形成一个链表， 辅助函数 `GetNextPageId` 和 `SetNextPageId` 可用于维护这个链表。
+
+`Init` 函数可用于手动刷新这个 `b_plus_tree_page`， 通常你不会手动调用这个成员函数， 但如果你的实现需要用到刷新 `b_plus_tree_page`, 你可以考虑调用它。
 
 另外请注意， 这两个类继承自 `BPlusTreePage`， 因此别忘了可以使用 `BPlusTreePage` 的成员函数 (如 `GetSize`, `IncreaseSize`)！
 
@@ -351,6 +355,12 @@ auto As() -> const T*
 ```cpp
 auto UpgradeRead() -> ReadPageGuard;
 auto UpgradeWrite() -> WritePageGuard;
+```
+
+`PageId` 成员函数可以返回该 `page_guard` 对应的 `page_id`。 
+
+```cpp
+auto PageId() -> page_id_t { return guard_.PageId(); }
 ```
 
 其他未提及的成员函数不是本次 project 必要的成员函数， 你可以忽略。
