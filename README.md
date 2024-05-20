@@ -18,7 +18,7 @@ DDL(暂定) : 第 17 周周日，`2024 年 6 月 16 日 23:59`
 
 <img src="https://notes.sjtu.edu.cn/uploads/upload_d74ed6ea471f51aa663eeb281bae90b9.png" width="500">
 
-我们的表格以行(row)为基本单位存储在磁盘上。
+我们的表格通过遵守一定的格式存储在磁盘上。
 
 对于数据库架构， 我从网络上找到了一个非常形象的图：(版权归"小林 coding"公众号所有， 该图为知名数据库 mysql 的架构示意图)
 
