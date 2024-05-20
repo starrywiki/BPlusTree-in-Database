@@ -141,7 +141,9 @@ class BPlusTreePage
 
 在该类中， `GetSize` 用于得到该 `b_plus_tree_page` 当前存储的元素个数， `SetSize` 用于设置该 `b_plus_tree_page` 的元素个数， `IncreaseSize` 用于增加其元素个数。此外， `GetMaxSize` 可以得到该 `b_plus_tree_page` 允许存储的最大元素个数， `GetMinSize` 可以得到该 `b_plus_tree_page` 允许存储的最小元素个数。 这些成员函数会在插入和删除操作时派上用场。
 
-此外， 请见 `src/include/storage/page/b_plus_tree_header_page.h`, 我们在这里定义了一个特殊的 `header page` 类型， 它存储着 B+ 树的根节点。 特殊定义一个 `header page` 有助于提升并发表现。
+此外， `IsLeafPage` 成员函数可以返回该 `Page` 是否为继承类 `BPlusTreeLeafPage`。
+
+接下来请见 `src/include/storage/page/b_plus_tree_header_page.h`, 我们在这里定义了一个特殊的 `header page` 类型， 它存储着 B+ 树的根节点。 特殊定义一个 `header page` 有助于提升并发表现。
 
 ```cpp
 class BPlusTreeHeaderPage
@@ -170,6 +172,8 @@ class BPlusTreeInternalPage : public BPlusTreePage
   BPlusTreeInternalPage() = delete;
   BPlusTreeInternalPage(const BPlusTreeInternalPage& other) = delete;
   //...
+  auto GetNextPageId() const -> page_id_t;
+  void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
   auto ValueAt(int index) const -> ValueType;
   void SetKeyAt(int index, const KeyType& key);
@@ -205,7 +209,13 @@ class BPlusTreeLeafPage : public BPlusTreePage
 ```
 
 
-我们的 `internal page` 和 `leaf page` 类都继承自 `BPlusTreePage`. `Internal page` 对应 B+ 树的内部结点， `leaf page` 对应 B+ 树的叶子结点。对于 `internal page`, 它存储着 n 个 索引 key 和 n + 1 个指向 `children page` 的指针。 对于 `LeafPage`, 它存储着 n 个 索引 key 和 n 个对应的数据行 ID。 这里的 `"KeyAt", "SetKeyAt", "ValueAt", "SetValueAt"` 可用于键值对的查询与更新， 会在 B+ 树的编写中用到。
+我们的 `internal page` 和 `leaf page` 类都继承自 `BPlusTreePage` 类. 
+
+`Internal page` 对应 B+ 树的内部结点， `leaf page` 对应 B+ 树的叶子结点。对于 `internal page`, 它存储着 n 个 索引 key 和 n + 1 个指向 `children page` 的指针。(由于我们以数组形式存储， 因此第一个数组元素对应的索引项无实际意义)  
+
+对于 `LeafPage`, 它存储着 n 个 索引 key 和 n 个对应的数据行 ID。 这里的 `"KeyAt", "SetKeyAt", "ValueAt", "SetValueAt"` 可用于键值对的查询与更新， 会在 B+ 树的编写中用到。所有的叶子节点形成一个链表， 辅助函数 `GetNextPageId` 和 `SetNextPageId` 可用于维护这个链表。
+
+另外请注意， 这两个类继承自 `BPlusTreePage`， 因此别忘了可以使用 `BPlusTreePage` 的成员函数 (如 `GetSize`, `IncreaseSize`)！
 
 ## page_guard
 
