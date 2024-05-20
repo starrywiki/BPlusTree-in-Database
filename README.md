@@ -503,6 +503,7 @@ auto BPLUSTREE_TYPE::Begin(const KeyType& key)  ->  INDEXITERATOR_TYPE
 
 你需要实现 B+ 树的查找 (`GetValue`)、插入（`Insert`）与删除 (`Remove`) 操作。 请注意， 整个 B+ 树存储于磁盘上， 因此每个结点都是以 `page` 形式存在， 需要使用 `FetchPageRead / FetchPageWrite` 函数将 `page` 从磁盘拿到内存中。
 
+
 ```cpp
 /*****************************************************************************
  * SEARCH
@@ -559,6 +560,34 @@ void BPLUSTREE_TYPE::Remove(const KeyType& key, Transaction* txn)
   //Your code here
 }
 ```
+
+此外， 我们额外留心一下 B+ 树的构造函数：
+
+```cpp
+INDEX_TEMPLATE_ARGUMENTS
+BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id,
+                          BufferPoolManager* buffer_pool_manager,
+                          const KeyComparator& comparator, int leaf_max_size,
+                          int internal_max_size)
+    : index_name_(std::move(name)),
+      bpm_(buffer_pool_manager),
+      comparator_(std::move(comparator)),
+      leaf_max_size_(leaf_max_size),
+      internal_max_size_(internal_max_size),
+      header_page_id_(header_page_id)
+{
+  WritePageGuard guard = bpm_ -> FetchPageWrite(header_page_id_);
+  // In the original bpt, I fetch the header page
+  // thus there's at least one page now
+  auto root_header_page = guard.template AsMut<BPlusTreeHeaderPage>();
+  // reinterprete the data of the page into "HeaderPage"
+  root_header_page -> root_page_id_ = INVALID_PAGE_ID;
+  // set the root_id to INVALID
+}
+```
+
+这里需要注意的是， 我们传入了一个比较函数的函数对象， 如果你希望对 `key` 进行比较， 请使用这里的 `comparator_` 函数对象。 
+
 
 ## Context
 
