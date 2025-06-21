@@ -28,7 +28,8 @@
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/page_guard.h"
 
-namespace bustub {
+namespace bustub
+{
 
 struct PrintableBPlusTree;
 
@@ -38,13 +39,16 @@ struct PrintableBPlusTree;
  * Hint: This class is designed to help you keep track of the pages
  * that you're modifying or accessing.
  */
-class Context {
- public:
-  // When you insert into / remove from the B+ tree, store the write guard of header page here.
-  // Remember to drop the header page guard and set it to nullopt when you want to unlock all.
+class Context
+{
+  public:
+  // When you insert into / remove from the B+ tree, store the write guard of
+  // header page here. Remember to drop the header page guard and set it to
+  // nullopt when you want to unlock all.
   std::optional<WritePageGuard> header_page_{std::nullopt};
 
-  // Save the root page id here so that it's easier to know if the current page is the root page.
+  // Save the root page id here so that it's easier to know if the current page
+  // is the root page.
   page_id_t root_page_id_{INVALID_PAGE_ID};
 
   // Store the write guards of the pages that you're modifying here.
@@ -53,33 +57,58 @@ class Context {
   // You may want to use this when getting value, but not necessary.
   std::deque<ReadPageGuard> read_set_;
 
-  auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
+  auto IsRootPage(page_id_t page_id) -> bool
+  {
+    return page_id == root_page_id_;
+  }
 };
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
 
 // Main class providing the API for the Interactive B+ Tree.
 INDEX_TEMPLATE_ARGUMENTS
-class BPlusTree {
+class BPlusTree
+{
   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
 
- public:
-  explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
-                     const KeyComparator &comparator, int leaf_max_size = LEAF_PAGE_SIZE,
+  public:
+  explicit BPlusTree(std::string name, page_id_t header_page_id,
+                     BufferPoolManager* buffer_pool_manager,
+                     const KeyComparator& comparator,
+                     int leaf_max_size = LEAF_PAGE_SIZE,
                      int internal_max_size = INTERNAL_PAGE_SIZE);
+
+  // // helper: 插入到 leaf，返回插入位置或 -1 表示重复
+  // auto InsertInLeaf(LeafPage* leaf_page, const KeyType& key,
+  //                   const ValueType& value) -> int;
+
+  // // helper: leaf（或 internal）分裂后把 up_key & new_pid 插到 parent
+  // void InsertInParent(const KeyType& key, page_id_t old_pid,
+  //                     page_id_t tobe_added_pid, Context& ctx, int idx);
+
+  // // helper: 统一释放 header_page_ 和 write_set_ 里的所有 guard
+  void DropAllGuards(Context& ctx);
+
+  void InsertIntoParent(const KeyType& key, page_id_t new_page_id, Context& ctx,
+                        int index);
 
   // Returns true if this B+ tree has no keys and values.
   auto IsEmpty() const -> bool;
+  void SplitInternalPage(InternalPage* parent_page, const KeyType& key,
+                         page_id_t new_page_id, KeyType& mid_key,
+                         page_id_t& new_internal_id);
 
-  // Insert a key-value pair into this B+ tree.
-  auto Insert(const KeyType &key, const ValueType &value, Transaction *txn = nullptr) -> bool;
+      // Insert a key-value pair into this B+ tree.
+      auto Insert(const KeyType& key, const ValueType& value,
+                  Transaction* txn = nullptr) -> bool;
 
   // Remove a key and its value from this B+ tree.
-  void Remove(const KeyType &key, Transaction *txn);
+  void Remove(const KeyType& key, Transaction* txn);
 
   // Return the value associated with a given key
-  auto GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *txn = nullptr) -> bool;
+  auto GetValue(const KeyType& key, std::vector<ValueType>* result,
+                Transaction* txn = nullptr) -> bool;
 
   // Return the page id of the root node
   auto GetRootPageId() -> page_id_t;
@@ -89,17 +118,18 @@ class BPlusTree {
 
   auto End() -> INDEXITERATOR_TYPE;
 
-  auto Begin(const KeyType &key) -> INDEXITERATOR_TYPE;
-  
-  //Binary find in page
-  auto BinaryFind(const LeafPage* leaf_page, const KeyType& key) -> int;
-  auto BinaryFind(const InternalPage* internal_page, const KeyType& key) -> int;
+  auto Begin(const KeyType& key) -> INDEXITERATOR_TYPE;
 
+  // Binary find in page
+  // auto BinaryFind(const LeafPage* leaf_page, const KeyType& key) -> int;
+  // auto BinaryFind(const InternalPage* internal_page, const KeyType& key) ->
+  // int;
+  auto BinaryFind(const BPlusTreePage* page, const KeyType& key) -> int;
   // Print the B+ tree
-  void Print(BufferPoolManager *bpm);
+  void Print(BufferPoolManager* bpm);
 
   // Draw the B+ tree
-  void Draw(BufferPoolManager *bpm, const std::string &outf);
+  void Draw(BufferPoolManager* bpm, const std::string& outf);
 
   /**
    * @brief draw a B+ tree, below is a printed
@@ -115,10 +145,10 @@ class BPlusTree {
   auto DrawBPlusTree() -> std::string;
 
   // read data from file and insert one by one
-  void InsertFromFile(const std::string &file_name, Transaction *txn = nullptr);
+  void InsertFromFile(const std::string& file_name, Transaction* txn = nullptr);
 
   // read data from file and remove one by one
-  void RemoveFromFile(const std::string &file_name, Transaction *txn = nullptr);
+  void RemoveFromFile(const std::string& file_name, Transaction* txn = nullptr);
 
   /**
    * @brief Read batch operations from input file, below is a sample file format
@@ -129,13 +159,15 @@ class BPlusTree {
    *                 (3)                (7)
    *            (1,2)    (3,4)    (5,6)    (7,10,30) //  The output tree example
    */
-  void BatchOpsFromFile(const std::string &file_name, Transaction *txn = nullptr);
+  void BatchOpsFromFile(const std::string& file_name,
+                        Transaction* txn = nullptr);
 
- private:
+  private:
   /* Debug Routines for FREE!! */
-  void ToGraph(page_id_t page_id, const BPlusTreePage *page, std::ofstream &out);
+  void ToGraph(page_id_t page_id, const BPlusTreePage* page,
+               std::ofstream& out);
 
-  void PrintTree(page_id_t page_id, const BPlusTreePage *page);
+  void PrintTree(page_id_t page_id, const BPlusTreePage* page);
 
   /**
    * @brief Convert A B+ tree into a Printable B+ tree
@@ -147,7 +179,7 @@ class BPlusTree {
 
   // member variable
   std::string index_name_;
-  BufferPoolManager *bpm_;
+  BufferPoolManager* bpm_;
   KeyComparator comparator_;
   std::vector<std::string> log;  // NOLINT
   int leaf_max_size_;
@@ -159,7 +191,8 @@ class BPlusTree {
  * @brief for test only. PrintableBPlusTree is a printable B+ tree.
  * We first convert B+ tree into a printable B+ tree and the print it.
  */
-struct PrintableBPlusTree {
+struct PrintableBPlusTree
+{
   int size_;
   std::string keys_;
   std::vector<PrintableBPlusTree> children_;
@@ -170,18 +203,22 @@ struct PrintableBPlusTree {
    *
    * @param out_buf
    */
-  void Print(std::ostream &out_buf) {
-    std::vector<PrintableBPlusTree *> que = {this};
-    while (!que.empty()) {
-      std::vector<PrintableBPlusTree *> new_que;
+  void Print(std::ostream& out_buf)
+  {
+    std::vector<PrintableBPlusTree*> que = {this};
+    while (!que.empty())
+    {
+      std::vector<PrintableBPlusTree*> new_que;
 
-      for (auto &t : que) {
+      for (auto& t : que)
+      {
         int padding = (t->size_ - t->keys_.size()) / 2;
         out_buf << std::string(padding, ' ');
         out_buf << t->keys_;
         out_buf << std::string(padding, ' ');
 
-        for (auto &c : t->children_) {
+        for (auto& c : t->children_)
+        {
           new_que.push_back(&c);
         }
       }
