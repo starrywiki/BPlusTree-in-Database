@@ -79,32 +79,30 @@ class BPlusTree
                      int leaf_max_size = LEAF_PAGE_SIZE,
                      int internal_max_size = INTERNAL_PAGE_SIZE);
 
-  // // helper: 插入到 leaf，返回插入位置或 -1 表示重复
-  // auto InsertInLeaf(LeafPage* leaf_page, const KeyType& key,
-  //                   const ValueType& value) -> int;
-
-  // // helper: leaf（或 internal）分裂后把 up_key & new_pid 插到 parent
-  // void InsertInParent(const KeyType& key, page_id_t old_pid,
-  //                     page_id_t tobe_added_pid, Context& ctx, int idx);
-
-  // // helper: 统一释放 header_page_ 和 write_set_ 里的所有 guard
+  // release all the guards
   void DropAllGuards(Context& ctx);
 
+  // Insert a new page_id & key in the internal page.
   void InsertIntoParent(const KeyType& key, page_id_t new_page_id, Context& ctx,
                         int index);
 
   // Returns true if this B+ tree has no keys and values.
   auto IsEmpty() const -> bool;
+
+  // split the internal page when full
   void SplitInternalPage(InternalPage* parent_page, const KeyType& key,
                          page_id_t new_page_id, KeyType& mid_key,
                          page_id_t& new_internal_id);
 
-      // Insert a key-value pair into this B+ tree.
-      auto Insert(const KeyType& key, const ValueType& value,
-                  Transaction* txn = nullptr) -> bool;
+  // Insert a key-value pair into this B+ tree.
+  auto Insert(const KeyType& key, const ValueType& value,
+              Transaction* txn = nullptr) -> bool;
 
   // Remove a key and its value from this B+ tree.
   void Remove(const KeyType& key, Transaction* txn);
+
+  // Remove a page_id from the internal page.
+  void RemoveFromParent(Context& ctx, int child_index, int parent_index);
 
   // Return the value associated with a given key
   auto GetValue(const KeyType& key, std::vector<ValueType>* result,
@@ -121,10 +119,8 @@ class BPlusTree
   auto Begin(const KeyType& key) -> INDEXITERATOR_TYPE;
 
   // Binary find in page
-  // auto BinaryFind(const LeafPage* leaf_page, const KeyType& key) -> int;
-  // auto BinaryFind(const InternalPage* internal_page, const KeyType& key) ->
-  // int;
   auto BinaryFind(const BPlusTreePage* page, const KeyType& key) -> int;
+
   // Print the B+ tree
   void Print(BufferPoolManager* bpm);
 
